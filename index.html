@@ -10,256 +10,116 @@ html, body {
   padding: 0;
   overflow: hidden;
   height: 100%;
-  background: linear-gradient(#6ec6ff, #eaf8ff);
+  background: linear-gradient(#87c9ff, #dff2ff);
   touch-action: none;
 }
 
-/* 🐉 дракон снизу */
-#dragonBody {
+/* 🐉 "дракон" — 3D блок */
+#dragon {
   position: absolute;
-  left: 50%;
-  bottom: 30px;
-  transform: translateX(-50%);
-}
-
-#neck {
-  width: 18px;
-  height: 70px;
-  background: #111;
-  margin: 0 auto;
+  width: 120px;
+  height: 180px;
+  background: #1a1a1a;
   border-radius: 20px;
-}
-
-#head {
-  width: 70px;
-  height: 50px;
-  background: #000;
-  border-radius: 50% 50% 40% 40%;
-  position: relative;
-  top: -10px;
-}
-
-#wings {
-  position: absolute;
-  width: 200px;
-  height: 80px;
-  background: rgba(0,0,0,0.15);
-  border-radius: 50%;
-  display: none;
   left: 50%;
-  bottom: 60px;
+  bottom: 10%;
   transform: translateX(-50%);
+  opacity: 0.9;
 }
 
-#startBtn {
+/* ☁️ облака */
+.cloud {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  padding: 12px 16px;
-  font-size: 18px;
-  z-index: 10;
+  width: 120px;
+  height: 60px;
+  background: white;
+  border-radius: 50px;
+  opacity: 0.9;
 }
 
+/* HUD */
 #debug {
   position: absolute;
   top: 10px;
   left: 10px;
   font-family: sans-serif;
   font-size: 14px;
+  color: #000;
 }
-</style>
-</head>
-
-<body>
-
-<div id="dragonBody">
-  <div id="head"></div>
-  <div id="neck"></div>
-</div>
-
-<div id="wings"></div>
-<button id="startBtn">Start 🐉</button>
-<div id="debug">Tilt: 0</div>
-
-<script>
-
-let xTilt = 0;
-let speed = 4;
-let isHolding = false;
-let started = false;
-
-let x = window.innerWidth / 2;
-
-const dragon = document.getElementById("dragonBody");
-const wings = document.getElementById("wings");
-const btn = document.getElementById("startBtn");
-const debug = document.getElementById("debug");
-
-// 🚀 старт
-btn.onclick = async () => {
-  started = true;
-  btn.style.display = "none";
-
-  try {
-    if (typeof DeviceOrientationEvent.requestPermission === "function") {
-      await DeviceOrientationEvent.requestPermission();
-    }
-  } catch (e) {}
-};
-
-// 📱 наклон (если работает)
-window.addEventListener("deviceorientation", (e) => {
-  if (!started) return;
-  xTilt = e.gamma || 0;
-  debug.innerText = "Tilt: " + xTilt.toFixed(1);
-});
-
-// 🫳 удержание = тормоз
-document.addEventListener("touchstart", () => {
-  if (!started) return;
-  isHolding = true;
-  wings.style.display = "block";
-});
-
-document.addEventListener("touchend", () => {
-  isHolding = false;
-  wings.style.display = "none";
-});
-
-// 🐉 цикл
-function loop() {
-
-  if (started) {
-
-    let moveX = xTilt * 0.4;
-
-    if (isHolding) {
-      speed *= 0.92;
-      if (speed < 1) speed = 1;
-    } else {
-      speed += 0.02;
-      if (speed > 7) speed = 7;
-    }
-
-    x += moveX;
-
-    if (x < 0) x = 0;
-    if (x > window.innerWidth) x = window.innerWidth;
-
-    dragon.style.left = x + "px";
-
-  }
-
-  requestAnimationFrame(loop);
-}
-
-loop();
-
-</script>
-
-</body>
-</html>  #startBtn {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    padding: 12px 16px;
-    font-size: 18px;
-  }
-
-  #debug {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    font-family: sans-serif;
-    font-size: 14px;
-  }
 </style>
 </head>
 
 <body>
 
 <div id="dragon"></div>
-<div id="wings"></div>
-<button id="startBtn">Start 🐉</button>
-<div id="debug">Tilt: 0</div>
+<div id="debug">Speed: 0</div>
 
 <script>
 
-let xTilt = 0;
 let speed = 4;
-let isHolding = false;
-let started = false;
-
 let x = window.innerWidth / 2;
-let y = window.innerHeight * 0.6;
 
-const dragon = document.getElementById("dragon");
-const wings = document.getElementById("wings");
-const btn = document.getElementById("startBtn");
-const debug = document.getElementById("debug");
+// 🐉 управление (пока без наклона — чтобы работало ВСЕГДА)
+let moveX = 0;
 
-// 🚀 старт + РАЗРЕШЕНИЕ СЕНСОРОВ
-btn.onclick = async () => {
-  started = true;
-  btn.style.display = "none";
+// облака
+let clouds = [];
 
-  try {
-    if (typeof DeviceOrientationEvent.requestPermission === "function") {
-      await DeviceOrientationEvent.requestPermission();
-    }
-  } catch (e) {}
-};
+// создаём облака
+function createCloud() {
+  const c = document.createElement("div");
+  c.className = "cloud";
+  c.style.left = Math.random() * window.innerWidth + "px";
+  c.style.top = "-80px";
+  document.body.appendChild(c);
 
-// 📱 НАКЛОН
-window.addEventListener("deviceorientation", (e) => {
-  if (!started) return;
+  clouds.push({
+    el: c,
+    x: parseFloat(c.style.left),
+    y: -80
+  });
+}
 
-  xTilt = e.gamma || 0;
-  debug.innerText = "Tilt: " + xTilt.toFixed(1);
+// создаём стартовые облака
+for (let i = 0; i < 8; i++) {
+  createCloud();
+}
+
+// 🫳 управление пальцем (движение влево/вправо)
+document.addEventListener("touchmove", (e) => {
+  let touch = e.touches[0];
+  moveX = (touch.clientX - window.innerWidth / 2) * 0.01;
 });
 
-// 🫳 удержание
-document.addEventListener("touchstart", () => {
-  if (!started) return;
-  isHolding = true;
-  wings.style.display = "block";
-});
-
-document.addEventListener("touchend", () => {
-  isHolding = false;
-  wings.style.display = "none";
-});
-
-// 🐉 цикл
+// 🚀 цикл
 function loop() {
 
-  if (started) {
+  // скорость "полёта вперёд"
+  speed += 0.01;
+  if (speed > 8) speed = 8;
 
-    let moveX = xTilt * 0.4;
+  x += moveX * 5;
 
-    if (isHolding) {
-      speed *= 0.92;
-      if (speed < 1) speed = 1;
-    } else {
-      speed += 0.02;
-      if (speed > 7) speed = 7;
+  if (x < 0) x = 0;
+  if (x > window.innerWidth) x = window.innerWidth;
+
+  document.getElementById("dragon").style.left = x + "px";
+
+  // ☁️ движение облаков
+  for (let c of clouds) {
+    c.y += speed;
+
+    if (c.y > window.innerHeight) {
+      c.y = -80;
+      c.x = Math.random() * window.innerWidth;
     }
 
-    x += moveX;
-    y -= speed;
-
-    if (x < 0) x = 0;
-    if (x > window.innerWidth) x = window.innerWidth;
-    if (y < 0) y = window.innerHeight;
-
-    dragon.style.left = x + "px";
-    dragon.style.top = y + "px";
-
-    wings.style.left = x + "px";
-    wings.style.top = (y + 20) + "px";
+    c.el.style.top = c.y + "px";
+    c.el.style.left = c.x + "px";
   }
+
+  document.getElementById("debug").innerText =
+    "Speed: " + speed.toFixed(1);
 
   requestAnimationFrame(loop);
 }
@@ -269,4 +129,4 @@ loop();
 </script>
 
 </body>
-  </html>
+</html>
