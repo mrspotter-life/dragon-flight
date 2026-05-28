@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Dragon Flight</title>
+
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: linear-gradient(#6ec6ff, #eaf8ff);
+    touch-action: none;
+  }
+
+  #dragon {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: black;
+    border-radius: 50%;
+    left: 50%;
+    top: 60%;
+    transform: translate(-50%, -50%);
+  }
+
+  #wings {
+    position: absolute;
+    width: 160px;
+    height: 60px;
+    background: rgba(0,0,0,0.15);
+    border-radius: 50%;
+    display: none;
+  }
+
+  #startBtn {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    padding: 12px 16px;
+    font-size: 18px;
+  }
+
+  #debug {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-family: sans-serif;
+    font-size: 14px;
+  }
+</style>
+</head>
+
+<body>
+
+<div id="dragon"></div>
+<div id="wings"></div>
+<button id="startBtn">Start 🐉</button>
+<div id="debug">Tilt: 0</div>
+
+<script>
+
+let xTilt = 0;
+let speed = 4;
+let isHolding = false;
+let started = false;
+
+let x = window.innerWidth / 2;
+let y = window.innerHeight * 0.6;
+
+const dragon = document.getElementById("dragon");
+const wings = document.getElementById("wings");
+const btn = document.getElementById("startBtn");
+const debug = document.getElementById("debug");
+
+// 🚀 старт + РАЗРЕШЕНИЕ СЕНСОРОВ
+btn.onclick = async () => {
+  started = true;
+  btn.style.display = "none";
+
+  try {
+    if (typeof DeviceOrientationEvent.requestPermission === "function") {
+      await DeviceOrientationEvent.requestPermission();
+    }
+  } catch (e) {}
+};
+
+// 📱 НАКЛОН
+window.addEventListener("deviceorientation", (e) => {
+  if (!started) return;
+
+  xTilt = e.gamma || 0;
+  debug.innerText = "Tilt: " + xTilt.toFixed(1);
+});
+
+// 🫳 удержание
+document.addEventListener("touchstart", () => {
+  if (!started) return;
+  isHolding = true;
+  wings.style.display = "block";
+});
+
+document.addEventListener("touchend", () => {
+  isHolding = false;
+  wings.style.display = "none";
+});
+
+// 🐉 цикл
+function loop() {
+
+  if (started) {
+
+    let moveX = xTilt * 0.4;
+
+    if (isHolding) {
+      speed *= 0.92;
+      if (speed < 1) speed = 1;
+    } else {
+      speed += 0.02;
+      if (speed > 7) speed = 7;
+    }
+
+    x += moveX;
+    y -= speed;
+
+    if (x < 0) x = 0;
+    if (x > window.innerWidth) x = window.innerWidth;
+    if (y < 0) y = window.innerHeight;
+
+    dragon.style.left = x + "px";
+    dragon.style.top = y + "px";
+
+    wings.style.left = x + "px";
+    wings.style.top = (y + 20) + "px";
+  }
+
+  requestAnimationFrame(loop);
+}
+
+loop();
+
+</script>
+
+</body>
+  </html>
