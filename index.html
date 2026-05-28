@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Dragon FPV Flight</title>
+<title>Dragon FPV v4</title>
 
 <style>
 html, body {
@@ -10,21 +10,44 @@ html, body {
   padding: 0;
   overflow: hidden;
   height: 100%;
-  background: linear-gradient(#78bfff, #eaf6ff);
+  background: linear-gradient(#7fc8ff, #eaf6ff);
   touch-action: none;
 }
 
-/* 🐉 дракон (FPV “кабина”) */
+/* 🌌 сцена (будем “наклонять мир”) */
+#scene {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  transform-origin: center;
+}
+
+/* 🐉 голова-кабина */
 #dragon {
   position: absolute;
-  width: 35vw;
-  height: 28vh;
+  width: 85vw;
+  height: 55vh;
   left: 50%;
-  bottom: 0;
+  bottom: -10vh;
   transform: translateX(-50%);
-  background: #111;
-  border-radius: 40px 40px 0 0;
-  opacity: 0.95;
+  background: #0e0e0e;
+  border-radius: 60px 60px 0 0;
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
+}
+
+/* “ушки” */
+.ear {
+  position: absolute;
+  width: 60px;
+  height: 120px;
+  background: #0e0e0e;
+  border-radius: 50%;
+  top: -40px;
+}
+
+.ear.big {
+  width: 90px;
+  height: 160px;
 }
 
 /* ☁️ облака */
@@ -33,7 +56,7 @@ html, body {
   background: white;
   border-radius: 50%;
   opacity: 0.9;
-  filter: blur(0.5px);
+  filter: blur(1px);
 }
 
 /* HUD */
@@ -43,77 +66,119 @@ html, body {
   left: 10px;
   font-family: sans-serif;
   font-size: 14px;
-  color: #000;
 }
 </style>
 </head>
 
 <body>
 
-<div id="dragon"></div>
-<div id="hud">Speed: 0</div>
+<div id="scene">
+
+  <div id="dragon">
+    <!-- 8 “ушей” -->
+    <div class="ear big" style="left: 10%; top:-20px;"></div>
+    <div class="ear big" style="right: 10%; top:-20px;"></div>
+
+    <div class="ear" style="left: 0%; top:10px;"></div>
+    <div class="ear" style="right: 0%; top:10px;"></div>
+
+    <div class="ear" style="left: 20%; top:20px;"></div>
+    <div class="ear" style="right: 20%; top:20px;"></div>
+
+    <div class="ear" style="left: 35%; top:30px;"></div>
+    <div class="ear" style="right: 35%; top:30px;"></div>
+  </div>
+
+</div>
+
+<div id="hud"></div>
 
 <script>
 
-let speed = 0.8;
-let tilt = 0;
-let hold = false;
-let camX = 0;
+const scene = document.getElementById("scene");
 
-// 🌌 облака в 3D пространстве
 let clouds = [];
+let speed = 1;
+let tilt = 0;
 
-function spawnCloud(zOverride = null) {
+// 🎮 управление зонами экрана
+let mode = "forward"; // forward / left / right / brake
+
+function setMode(y, x) {
+
+  const h = window.innerHeight;
+  const w = window.innerWidth;
+
+  if (y > h * 0.6) {
+    if (x < w * 0.33) mode = "left";
+    else if (x > w * 0.66) mode = "right";
+    else mode = "brake";
+  } else {
+    mode = "forward";
+  }
+}
+
+// 🫳 управление
+document.addEventListener("touchstart", (e) => {
+  let t = e.touches[0];
+  setMode(t.clientY, t.clientX);
+});
+
+document.addEventListener("touchmove", (e) => {
+  let t = e.touches[0];
+  setMode(t.clientY, t.clientX);
+});
+
+document.addEventListener("touchend", () => {
+  mode = "forward";
+});
+
+// ☁️ создание облаков (3 слоя глубины)
+function spawnCloud() {
   return {
     x: Math.random() * window.innerWidth,
-    y: Math.random() * window.innerHeight * 0.6,
-    z: zOverride ?? (Math.random() * 1.5 + 0.3) // глубина
+    y: Math.random() * window.innerHeight * 0.7,
+    z: Math.random() * 1.5 + 0.3
   };
 }
 
-// создаём облака
-for (let i = 0; i < 25; i++) {
+for (let i = 0; i < 30; i++) {
   clouds.push(spawnCloud());
 }
 
-/* 🫳 свайп управление */
-document.addEventListener("touchmove", (e) => {
-  let t = e.touches[0];
-  let dx = (t.clientX - window.innerWidth / 2);
-  camX = dx * 0.002;
-});
-
-/* ✋ тормоз */
-document.addEventListener("touchstart", () => hold = true);
-document.addEventListener("touchend", () => hold = false);
-
 function loop() {
 
-  // 🚀 скорость
-  if (hold) {
-    speed *= 0.97;
-    if (speed < 0.3) speed = 0.3;
-  } else {
-    speed += 0.01;
-    if (speed > 3.5) speed = 3.5;
-  }
+  // 🚀 логика скорости
+  if (mode === "brake") speed *= 0.95;
+  else if (mode === "forward") speed += 0.01;
+  else speed += 0.015;
 
-  // ☁️ облака “летят в тебя”
+  if (speed < 0.3) speed = 0.3;
+  if (speed > 4) speed = 4;
+
+  // 🐉 наклон сцены
+  if (mode === "left") tilt = -8;
+  else if (mode === "right") tilt = 8;
+  else tilt = 0;
+
+  scene.style.transform = `rotateZ(${tilt}deg)`;
+
+  // ☁️ облака
   for (let c of clouds) {
 
     c.z -= speed * 0.01;
 
     if (c.z <= 0.2) {
-      Object.assign(c, spawnCloud(1.5));
+      Object.assign(c, spawnCloud());
+      c.z = 1.5;
     }
 
-    // перспектива (FPV)
     let scale = 1 / c.z;
 
-    let x = c.x + camX * 800 * scale;
-    let y = c.y + (1 - c.z) * window.innerHeight * 0.4;
+    let x = c.x + (tilt * 2) * scale;
+    let y = c.y + (1 - c.z) * window.innerHeight * 0.5;
 
-    let size = 140 * scale;
+    let size = 260 * scale;
 
     if (!c.el) {
       c.el = document.createElement("div");
@@ -122,13 +187,13 @@ function loop() {
     }
 
     c.el.style.width = size + "px";
-    c.el.style.height = size * 0.6 + "px";
+    c.el.style.height = size * 0.65 + "px";
     c.el.style.left = x + "px";
     c.el.style.top = y + "px";
   }
 
   document.getElementById("hud").innerText =
-    "Speed: " + speed.toFixed(2);
+    "speed: " + speed.toFixed(2) + " | mode: " + mode;
 
   requestAnimationFrame(loop);
 }
